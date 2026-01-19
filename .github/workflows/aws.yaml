@@ -1,0 +1,36 @@
+name: build and push to aws
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Build project
+        run: dotnet restore; dotnet publish -o site;
+
+      - name: create zip package
+        run: cd site; zip ../site.zip *;
+
+      - name: Deploy to AWS Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: 'CalculatorApi'
+          environment_name: 'CalculatorApi-env'
+          version_label: 'v1-${{ github.run_id }}'
+          region: 'us-east-1'
+          deployment_package: 'site.zip'
