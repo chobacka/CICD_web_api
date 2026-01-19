@@ -16,7 +16,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '7.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Build project
         run: dotnet restore; dotnet publish -o site;
@@ -29,8 +29,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: 'CalculatorApi'
-          environment_name: 'CalculatorApi-env'
+          application_name: 'CalculatorAPI'
+          environment_name: 'CalculatorAPI-env'
           version_label: 'v1-${{ github.run_id }}'
-          region: 'us-east-1'
+          aws_region: 'eu-north-1'
           deployment_package: 'site.zip'
