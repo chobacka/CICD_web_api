@@ -1,0 +1,108 @@
+name: Generate Daily Meme
+
+on:
+  schedule:
+    # Körs kl 08:00 varje dag (UTC)
+    - cron: '0 8 * * *'
+  # Gör så att du kan köra den manuellt för att testa
+  workflow_dispatch:
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+       - name: Generate Image with AI (Python script)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pip install openai requests
+          
+          cat <<EOF > generate_meme.py
+          from openai import OpenAI
+          import requests
+          import os
+          import random
+
+          client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+          # --- KARAKTÄRSBESKRIVNINGAR ---
+          # Här definierar vi hur de ser ut baserat på dina bilder
+          char_data = {
+              "Jeff": "a bald man with a dark well-groomed beard, broad shoulders, and a black necklace",
+              "Ragge": "a man with an undercut hairstyle (shaved sides, dark hair on top), sunglasses resting on top of his head, wearing a white t-shirt",
+              "Marco": "a man with short brown hair slicked back, a short stubble beard, and a friendly smile"
+          }
+          
+          # Lista på namn
+          names = list(char_data.keys())
+
+          # --- SLUMPA KARAKTÄRER (1, 2 eller 3 st) ---
+          count = random.randint(1, 3)
+          selected_names = random.sample(names, count)
+          
+          # Bygg texten för vilka som är med
+          # T.ex: "Jeff (beskrivning), Ragge (beskrivning)..."
+          chars_description = ", ".join([f"{name} ({char_data[name]})" for name in selected_names])
+          names_text = " and ".join(selected_names)
+
+          print(f"Today's stars: {names_text}")
+
+          # --- SLUMPA AKTIVITET ---
+          # För att det inte ska bli samma bild varje dag
+          activities = [
+              "trying to fix a giant server that is on fire",
+              "floating in zero gravity eating bananas",
+              "running away from a giant bug in a digital matrix world",
+              "having a intense meeting about a nano banana",
+              "coding furiously on 10 screens at once",
+              "celebrating with confetti and champagne",
+              "lifting heavy weights made of code blocks"
+          ]
+          activity = random.choice(activities)
+
+          # --- SKAPA PROMPT ---
+          prompt_text = (
+              f"A funny digital art meme style image. "
+              f"The image features {names_text}. "
+              f"Appearance details: {chars_description}. "
+              f"They are {activity}. "
+              "Make it colorful, expressive and chaotic. "
+              "Add a funny meme text overlay related to the situation."
+          )
+          
+          print(f"Prompt: {prompt_text}")
+
+          # --- ANROPA DALL-E ---
+          response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt_text,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+          )
+
+          image_url = response.data[0].url
+          print("Image generated! Downloading...")
+
+          img_data = requests.get(image_url).content
+          with open('daily-meme.png', 'wb') as handler:
+              handler.write(img_data)
+          EOF
+          
+          python generate_meme.py
+      - name: Upload to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read
+        env:
+          AWS_S3_BUCKET: 'chobacka-meme-bucket' # Ändra till din buckets namn
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'eu-north-1'
+          SOURCE_DIR: '.' # Ladda upp filer från nuvarande mapp
+          DEST_DIR: '' 
+          # Vi vill bara ladda upp bilden
+          Include: 'daily-meme.png'
