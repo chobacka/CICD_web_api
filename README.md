@@ -44,3 +44,6 @@ This project was built with a strong focus on modern DevSecOps principles and cl
 4.  Open your browser and navigate to http://localhost:5000 (or the port specified in your console).
 
 Note: To run the daily generation script locally, you will need to execute the Python script manually and provide your own OPENAI_API_KEY in your environment variables.
+
+> ⚠️ **Project Status: Infrastructure Offline**
+> *Please note: The AWS S3 bucket and active cloud environment for this project have been spun down to avoid ongoing hosting costs. The CI/CD pipeline will therefore show as "failed" in recent automated runs. The codebase remains publicly available to demonstrate the architecture, GitHub Actions automation, and C# cloud integration.*
